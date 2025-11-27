@@ -1,8 +1,7 @@
-; MBR 引导程序（512 字节）
 [BITS 16]       ; 设为 16 位实模式
 [ORG 0x7C00]    ; BIOS 从磁盘第一个扇区加载 MBR 到 0x7C00 地址执行，故设基地址为 0x7C00
 
-; 读取内核到内存的 KERNEL_ADDR（磁盘 CHS 寻址，内存分段寻址）
+; 读取 bootloader stage2 到内存的 0x6000 位置（磁盘 CHS 寻址，内存分段寻址）
 start:
     mov ah, 0x02                ; 调用 int 0x13 磁盘中断的子功能 0x02 读扇区
     mov al, 2                   ; 读 2 个扇区（1KB）
@@ -19,12 +18,20 @@ start:
     int 0x13                    ; 触发磁盘中断，读扇区
     jc error                    ; 若失败则 CF = 1，检测到 CF = 1 则报错
 
-    jmp 0x0600:0x0000           ; 跳转到加载了 bootloader 的位置，继续执行
+    jmp 0x0600:0x0000           ; 跳转到加载了 stage2 的位置，继续执行
 
 error:
     mov ah, 0x0E    ; 调用 int 0x10 视频中断的子功能 0x0E Teletype 模式打印
-    mov al, 'E'     ; 打印的字符是 'E'
+    mov al, 'M'     ; 打印的字符是 'M'
     int 0x10        ; 触发视频中断，打印
+    mov al, 'B'
+    int 0x10
+    mov al, 'R'
+    int 0x10
+    mov al, ' '
+    int 0x10
+    mov al, 'E'
+    int 0x10
     mov al, 'r'
     int 0x10
     mov al, 'r'
@@ -34,6 +41,7 @@ error:
     mov al, 'r'
     int 0x10
 
+; 出错后要保持在一个稳定状态
 hang:
     jmp hang
 
